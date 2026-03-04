@@ -47,7 +47,29 @@
             align-self: flex-start;
             background: #1a3a2a;
             font-size: 0.9em;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
+        .msg.tool .tool-name { color: #7dd3a0; }
+        .msg.tool .tool-args { color: #aaa; font-family: monospace; }
+        .msg.tool .tool-status { color: #6ee7b7; }
+        .msg.tool .tool-output {
+            margin: 0.5rem 0 0;
+            padding: 0.5rem;
+            background: #0d2818;
+            border-radius: 6px;
+            font-size: 0.85em;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 12rem;
+            overflow-y: auto;
+        }
+        .msg.model.typing::after {
+            content: '▌';
+            animation: blink 0.8s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
         #input-area {
             padding: 1rem;
             border-top: 1px solid #333;

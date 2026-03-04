@@ -226,6 +226,6 @@ class Agent:
             payload["toolConfig"] = {
                 "functionCallingConfig": {"mode": "AUTO"},
             }
-        response = requests.post(url, json=payload, timeout=120)
+        response = requests.post(url, json=payload, timeout=self.timeout_seconds)
         response.raise_for_status()
         return response.json()

@@ -21,10 +21,65 @@
         div.textContent = text;
         messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
+        return div;
+    }
+
+    function addToolMsg(name, args) {
+        const div = document.createElement('div');
+        div.className = 'msg tool';
+        div.dataset.toolName = name || '';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'tool-name';
+        nameEl.textContent = '🔧 ' + (name || 'tool') + '(';
+        const argsStr = typeof args === 'object' ? JSON.stringify(args) : String(args || '');
+        const argsEl = document.createElement('span');
+        argsEl.className = 'tool-args';
+        argsEl.textContent = argsStr + ')';
+        const statusEl = document.createElement('span');
+        statusEl.className = 'tool-status';
+        statusEl.textContent = ' ...';
+        div.appendChild(nameEl);
+        div.appendChild(argsEl);
+        div.appendChild(statusEl);
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return div;
+    }
+
+    function updateToolResult(toolDiv, result) {
+        const statusEl = toolDiv.querySelector('.tool-status');
+        if (!statusEl) return;
+        let out = '';
+        if (result === undefined || result === null) {
+            out = ' → ok';
+        } else if (typeof result === 'string') {
+            out = ' → ' + (result.length > 500 ? result.slice(0, 500) + '...' : result);
+        } else {
+            const str = JSON.stringify(result);
+            out = ' → ' + (str.length > 500 ? str.slice(0, 500) + '...' : str);
+        }
+        statusEl.textContent = out;
+        const pre = document.createElement('pre');
+        pre.className = 'tool-output';
+        pre.textContent = typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result ?? '');
+        toolDiv.appendChild(pre);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     function setStatus(text) {
         statusEl.textContent = text;
+    }
+
+    function getOrCreateModelDiv() {
+        let lastModel = messagesEl.querySelector('.msg.model:last-of-type');
+        if (!lastModel || !currentRunId) {
+            const div = document.createElement('div');
+            div.className = 'msg model';
+            div.textContent = '';
+            messagesEl.appendChild(div);
+            return div;
+        }
+        return lastModel;
     }
 
     function connect() {
@@ -52,19 +107,31 @@
                     const evt = data.event;
                     const pl = data.payload || {};
                     if (evt === 'assistant' && pl.text) {
-                        const last = messagesEl.lastElementChild;
-                        if (last && last.classList.contains('model') && currentRunId) {
-                            last.textContent += pl.text;
-                        } else {
-                            addMsg('model', pl.text);
-                        }
+                        const modelDiv = getOrCreateModelDiv();
+                        modelDiv.textContent += pl.text;
+                        modelDiv.classList.remove('typing');
                         messagesEl.scrollTop = messagesEl.scrollHeight;
-                    } else if (evt === 'tool' && pl.phase === 'start') {
-                        addMsg('tool', 'Tool: ' + (pl.name || '') + '...', true);
-                    } else if (evt === 'lifecycle' && (pl.phase === 'end' || pl.phase === 'error')) {
-                        currentRunId = null;
-                        sendBtn.disabled = false;
-                        setStatus('Conectado');
+                    } else if (evt === 'tool') {
+                        if (pl.phase === 'start') {
+                            addToolMsg(pl.name, pl.args);
+                        } else if (pl.phase === 'end') {
+                            const tools = messagesEl.querySelectorAll('.msg.tool');
+                            const lastTool = tools[tools.length - 1];
+                            if (lastTool && lastTool.querySelector('.tool-output') === null) {
+                                updateToolResult(lastTool, pl.result);
+                            }
+                        }
+                    } else if (evt === 'lifecycle') {
+                        if (pl.phase === 'start') {
+                            setStatus('Pensando...');
+                            const modelDiv = getOrCreateModelDiv();
+                            modelDiv.classList.add('typing');
+                        } else if (pl.phase === 'end' || pl.phase === 'error') {
+                            currentRunId = null;
+                            sendBtn.disabled = false;
+                            setStatus(pl.phase === 'error' ? 'Erro: ' + (pl.error || '') : 'Conectado');
+                            messagesEl.querySelectorAll('.msg.model.typing').forEach(el => el.classList.remove('typing'));
+                        }
                     }
                 }
             } catch (e) {}
@@ -93,7 +160,7 @@
         const lastModel = messagesEl.querySelector('.msg.model:last-of-type');
         if (lastModel) lastModel.remove();
         const div = document.createElement('div');
-        div.className = 'msg model';
+        div.className = 'msg model typing';
         div.textContent = '';
         messagesEl.appendChild(div);
         currentRunId = 'pending';

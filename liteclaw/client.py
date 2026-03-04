@@ -31,6 +31,7 @@ class LiteClawClient:
         base_url: Optional[str] = None,
         auto_start: bool = True,
         backend: str = "cpu",
+        request_timeout: int = 600,
     ):
         """
         Args:
@@ -40,9 +41,11 @@ class LiteClawClient:
             base_url: URL base da API (default: http://localhost:{port})
             auto_start: Iniciar servidor automaticamente se não estiver rodando
             backend: Backend de inferência (cpu, gpu)
+            request_timeout: Timeout em segundos para requisições HTTP ao LLM (default: 600)
         """
         self.model = model
         self.port = port
+        self.request_timeout = request_timeout
         self.base_url = base_url or f"http://localhost:{port}"
         self.auto_start = auto_start
         self.backend = backend
@@ -152,7 +155,7 @@ class LiteClawClient:
         response = requests.post(
             url,
             json=payload,
-            timeout=120,
+            timeout=self.request_timeout,
         )
         response.raise_for_status()
         return response.json()
