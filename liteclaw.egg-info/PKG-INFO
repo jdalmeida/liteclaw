@@ -1,0 +1,95 @@
+Metadata-Version: 2.4
+Name: liteclaw
+Version: 0.1.0
+Summary: Wrapper Python para LiteRT-LM com suporte a tools
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.28.0
+Requires-Dist: websockets>=12.0
+Requires-Dist: aiohttp>=3.9
+Requires-Dist: python-telegram-bot>=21.0
+Requires-Dist: discord.py>=2.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+
+# LiteClaw
+
+Wrapper Python para o executável `lit` do [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) da Google, permitindo utilizar **tools** (function calling) com modelos locais.
+
+## Requisitos
+
+- Python 3.8+
+- Executável `lit` do LiteRT-LM no diretório do projeto
+- Modelo compatível com tool calling (ex: FunctionGemma/TinyGarden)
+
+## Instalação
+
+```bash
+# Com venv (recomendado)
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# ou: .venv\Scripts\activate  # Windows
+
+pip install -r requirements.txt
+
+# Ou instalar como pacote
+pip install -e .
+```
+
+## Uso Básico
+
+```python
+from liteclaw import LiteClawClient, tool, ToolRegistry
+
+@tool(description="Retorna o clima de uma localização")
+def get_weather(location: str) -> dict:
+    return {"location": location, "temperature": 25, "condition": "Sunny"}
+
+client = LiteClawClient(model="qwen2.5-1.5b", auto_start=True)
+client.tools.register(get_weather)
+
+response = client.chat("Como está o clima em Paris?")
+print(response)
+```
+
+## Modelos com Suporte a Tools
+
+Para function calling, utilize modelos treinados para tools, como:
+
+- **TinyGarden** (FunctionGemma-270M): `lit pull google/functiongemma-270m-it`
+- Consulte a [documentação do LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) para a lista atualizada
+
+Modelos como `qwen2.5-1.5b` e `gemma3-1b` podem funcionar em modo chat normal, mas o suporte a tools depende do modelo.
+
+## API
+
+### LiteClawClient
+
+- `chat(message, history=None, max_tool_rounds=5)` - Chat com execução automática de tools
+- `generate_content(contents, tools=None, tool_config=None)` - Chamada direta à API
+- `start_server()` / `stop_server()` - Controle do servidor `lit serve`
+
+### Decorator @tool
+
+```python
+@tool(name="minha_funcao", description="Descrição da tool")
+def minha_funcao(param1: str, param2: int) -> dict:
+    return {"resultado": "..."}
+```
+
+### ToolRegistry
+
+- `register(func)` - Registra função decorada com @tool
+- `register_function(name, func, description, parameters)` - Registro manual
+
+## Exemplo
+
+Execute o exemplo interativo:
+
+```bash
+python examples/chat_with_tools.py
+```
+
+## Licença
+
+Apache-2.0 (compatível com LiteRT-LM)

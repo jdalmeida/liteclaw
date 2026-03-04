@@ -1,31 +1,44 @@
 # LiteClaw
 
-Wrapper Python para o executável `lit` do [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) da Google, permitindo utilizar **tools** (function calling) com modelos locais.
+Agente autônomo com LLM local inspirado no [OpenClaw](https://github.com/openclaw/openclaw). Wrapper Python para o [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) da Google, com **tools**, **skills** (formato AgentSkills), Gateway WebSocket, WebChat e canais (Telegram, Discord).
 
-## Requisitos
+## Características
 
-- Python 3.8+
-- Executável `lit` do LiteRT-LM no diretório do projeto
-- Modelo compatível com tool calling (ex: FunctionGemma/TinyGarden)
+- **LLM local** — Executa modelos via `lit serve` (LiteRT-LM), sem dependência de APIs externas
+- **Tools** — Function calling com decorator `@tool` e tools builtin (exec, read, write, web_fetch)
+- **Skills** — Formato AgentSkills (SKILL.md) com gating e injeção no prompt
+- **Gateway** — Servidor WebSocket + HTTP na porta 18789
+- **WebChat** — Interface web para conversar com o agente
+- **Canais** — Telegram e Discord como canais de mensagem
 
 ## Instalação
 
 ```bash
-# Com venv (recomendado)
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# ou: .venv\Scripts\activate  # Windows
+# Linux/macOS
+./scripts/install.sh
 
-pip install -r requirements.txt
-
-# Ou instalar como pacote
-pip install -e .
+# Windows (PowerShell)
+.\scripts\install.ps1
 ```
 
-## Uso Básico
+Ou manualmente: `python -m venv .venv` → `source .venv/bin/activate` → `pip install -e .`
+
+**Requisitos:** Python 3.8+, executável `lit` do LiteRT-LM no projeto.
+
+## Início rápido
+
+```bash
+# 1. Inicie o gateway (WebChat em http://127.0.0.1:18789)
+liteclaw gateway --verbose
+
+# 2. Envie uma mensagem via CLI
+liteclaw agent -m "Olá! O que você consegue fazer?"
+```
+
+Ou use em Python:
 
 ```python
-from liteclaw import LiteClawClient, tool, ToolRegistry
+from liteclaw import LiteClawClient, tool
 
 @tool(description="Retorna o clima de uma localização")
 def get_weather(location: str) -> dict:
@@ -33,48 +46,44 @@ def get_weather(location: str) -> dict:
 
 client = LiteClawClient(model="qwen2.5-1.5b", auto_start=True)
 client.tools.register(get_weather)
-
-response = client.chat("Como está o clima em Paris?")
-print(response)
+print(client.chat("Como está o clima em Paris?"))
 ```
 
-## Modelos com Suporte a Tools
+## Documentação
 
-Para function calling, utilize modelos treinados para tools, como:
+| Documento | Descrição |
+|-----------|-----------|
+| [Instalação](docs/instalacao.md) | Requisitos e instalação detalhada |
+| [Guia rápido](docs/guia-rapido.md) | Primeiros passos e exemplos |
+| [Arquitetura](docs/arquitetura.md) | Visão geral do sistema |
+| [Tools](docs/tools.md) | Como criar e usar tools |
+| [Skills](docs/skills.md) | Formato AgentSkills e gating |
+| [Gateway](docs/gateway.md) | Protocolo WebSocket e API |
+| [Canais](docs/canais.md) | Telegram, Discord e configuração |
+| [Configuração](docs/configuracao.md) | config.json e variáveis de ambiente |
+| [Referência API](docs/api.md) | Classes e métodos |
 
-- **TinyGarden** (FunctionGemma-270M): `lit pull google/functiongemma-270m-it`
-- Consulte a [documentação do LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) para a lista atualizada
+## Estrutura do projeto
 
-Modelos como `qwen2.5-1.5b` e `gemma3-1b` podem funcionar em modo chat normal, mas o suporte a tools depende do modelo.
-
-## API
-
-### LiteClawClient
-
-- `chat(message, history=None, max_tool_rounds=5)` - Chat com execução automática de tools
-- `generate_content(contents, tools=None, tool_config=None)` - Chamada direta à API
-- `start_server()` / `stop_server()` - Controle do servidor `lit serve`
-
-### Decorator @tool
-
-```python
-@tool(name="minha_funcao", description="Descrição da tool")
-def minha_funcao(param1: str, param2: int) -> dict:
-    return {"resultado": "..."}
+```
+liteclaw/
+├── client.py       # LiteClawClient (lit serve)
+├── agent.py        # Loop do agente
+├── session.py      # Gerenciador de sessões
+├── skills.py       # Loader de skills
+├── tools.py        # @tool e ToolRegistry
+├── tools_builtin.py# exec, read, write, web_fetch
+├── gateway/        # Servidor HTTP + WebSocket
+├── channels/       # Telegram, Discord
+└── web/            # WebChat (HTML/JS)
 ```
 
-### ToolRegistry
+## Modelos recomendados
 
-- `register(func)` - Registra função decorada com @tool
-- `register_function(name, func, description, parameters)` - Registro manual
+Para **function calling**, use modelos treinados para tools:
 
-## Exemplo
-
-Execute o exemplo interativo:
-
-```bash
-python examples/chat_with_tools.py
-```
+- **FunctionGemma-270M** (TinyGarden): `lit pull google/functiongemma-270m-it`
+- Consulte a [documentação do LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM)
 
 ## Licença
 

@@ -1,1 +1,1 @@
-LiteClaw: wrapper Python para lit (LiteRT-LM) com suporte a tools; usa lit serve e API Gemini-compatible; registrar tools com @tool e client.tools.register().
+LiteClaw: agente autônomo com LLM local (lit/LiteRT-LM), tools, skills AgentSkills, Gateway WebSocket, WebChat e canais (Telegram, Discord). Registrar tools com @tool e client.tools.register(); skills em skills/*/SKILL.md; gateway: liteclaw gateway; agent: liteclaw agent -m "msg".
